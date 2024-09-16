@@ -8,17 +8,22 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 // import javax.swing.Timer;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
+import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import java.awt.Dimension;
-import java.util.Timer;
+import javax.swing.Timer;
 import java.util.TimerTask;
 
 import javax.swing.BorderFactory;
@@ -36,22 +41,27 @@ public class DisPlay implements MouseListener{
     static final int ScreenWidth = tileSize * ScreenHorizontal; 
     static final int ScreeenHeight = tileSize * ScreeenVertical;
 
-    JFrame window; 
-    JPanel contentPane;
-    JPanel bottomPane;
-    JPopupMenu content;
-    JLabel textScore, numScore; // label"score:"  and labelscore
-    JLabel textHighscore, numHighscore; // label"Highscore:" and Labelhighscore
-    JButton btnQuit; // quit button
-    JLabel textQuit;
-    JButton purPad, greenPad, redPad, cyanPad, orgPad, yellPad; // All pads (6 pads)
-    Icon left, right, up, down;
-    PadType type; // enum Padtype
-    LinkedHashMap<PadType,Integer> pattern = new LinkedHashMap<>();
-    ArrayList <PadType> list_pad = new ArrayList<>(); // list of Padtype 
-    ArrayList <Integer> list_amount = new ArrayList<>(); // list of amount to click in one pad
-    int countgen = 1; // count for generate pattern (level will increase from countgen)
-    int cntrandom = 1;
+    private JFrame window; 
+    private JPanel contentPane;
+    private JPanel bottomPane;
+    private JPopupMenu content;
+    private JLabel textScore, numScore; // label"score:"  and labelscore
+    private JLabel textHighscore, numHighscore; // label"Highscore:" and Labelhighscore
+    private JButton btnQuit; // quit button
+    private JLabel textQuit;
+    private JButton purPad, greenPad, redPad, cyanPad, orgPad, yellPad; // All pads (6 pads)
+    private Icon left, right, up, down;
+    private PadType type; // enum Padtype
+    private LinkedHashMap<PadType,Integer> pattern = new LinkedHashMap<>();
+    private ArrayList <PadType> list_pad = new ArrayList<>(); // list of Padtype 
+    private ArrayList <Integer> list_amount = new ArrayList<>(); // list of amount to click in one pad
+    private int countgen = 5; // count for generate pattern (level will increase from countgen)
+    private int cntrandom = 1;
+    private int cntpatt = 1;
+    private int amount;
+    private int cntTimer;
+    private Timer blinkTimer;
+
     
     // public disPlay(){
     //     JFrame window = new JFrame();
@@ -128,7 +138,7 @@ public class DisPlay implements MouseListener{
         // set Quit button
         btnQuit = new JButton("Quit");
         btnQuit.setFont(new Font("Unispace", Font.BOLD,18 ));
-        btnQuit.setBounds(415, 620, 70, 50);
+        btnQuit.setBounds(435, 620, 70, 50);
         btnQuit.setPreferredSize(new Dimension(70,50));
         btnQuit.addMouseListener(this);
         btnQuit.setForeground(Color.WHITE);
@@ -139,24 +149,18 @@ public class DisPlay implements MouseListener{
         // set All pads
         // set purplepad
         UIManager.put("Button.select", Color.decode("#2b2b2b"));
-        purPad = new JButton();
-        ImageIcon img = new ImageIcon("Image\\Allpads1\\purpad.png");
-        RotatedIcon r1 = new RotatedIcon(img,45);
-        purPad.setIcon(r1);
-        purPad.setBounds(150, 150, 150, 150);
+        purPad = new JButton(new ImageIcon("Image\\Finalpad\\pupad1.png"));
+        purPad.setBounds(145, 152 ,200, 200);
         purPad.setBorderPainted(false);
         purPad.setFocusPainted(false);
         purPad.setOpaque(false);
         purPad.setContentAreaFilled(false);
-        // purPad.setBorder(BorderFactory.);
+        purPad.setBorder(BorderFactory.createEmptyBorder());
         purPad.setCursor(new Cursor(Cursor.HAND_CURSOR));
         purPad.addMouseListener(this);;
         // set greenpad
-        greenPad = new JButton();
-        img = new ImageIcon("Image\\Allpads1\\greenpad.png");
-        r1 = new RotatedIcon(img, 45);
-        greenPad.setIcon(r1);
-        greenPad.setBounds(260, 265, 150, 150);
+        greenPad = new JButton(new ImageIcon("Image\\Finalpad\\greenpad1.png"));
+        greenPad.setBounds(260, 265, 200, 200);
         greenPad.setBorderPainted(false);
         greenPad.setFocusPainted(false);
         greenPad.setOpaque(false);
@@ -165,11 +169,8 @@ public class DisPlay implements MouseListener{
         greenPad.setBorder(BorderFactory.createEmptyBorder());
         greenPad.setCursor(new Cursor(Cursor.HAND_CURSOR));
         // set redpad
-        redPad = new JButton();
-        img = new ImageIcon("Image\\Allpads1\\redpad.png");
-        r1 = new RotatedIcon(img, 45);
-        redPad.setIcon(r1);
-        redPad.setBounds(370, 379, 150, 150);
+        redPad = new JButton(new ImageIcon("Image\\Finalpad\\redpad1.png"));
+        redPad.setBounds(370, 379, 200, 200);
         redPad.setBorderPainted(false);
         redPad.setFocusPainted(false);
         redPad.setOpaque(false);
@@ -178,11 +179,8 @@ public class DisPlay implements MouseListener{
         redPad.setBorder(BorderFactory.createEmptyBorder());
         redPad.setCursor(new Cursor(Cursor.HAND_CURSOR));
         // set cyanpad
-        cyanPad = new JButton();
-        img = new ImageIcon("Image\\Allpads1\\cyanpad.png");
-        r1 = new RotatedIcon(img,45.0);
-        cyanPad.setIcon(r1);
-        cyanPad.setBounds(370, 150, 150, 150);
+        cyanPad = new JButton(new ImageIcon("Image\\Finalpad\\cyanpad1.png"));
+        cyanPad.setBounds(370, 150, 200, 200);
         cyanPad.setBorderPainted(false);
         cyanPad.setFocusPainted(false);
         cyanPad.setOpaque(false);
@@ -191,11 +189,8 @@ public class DisPlay implements MouseListener{
         cyanPad.setBorder(BorderFactory.createEmptyBorder());
         cyanPad.setCursor(new Cursor(Cursor.HAND_CURSOR));
         // set orangepad
-        orgPad = new JButton();
-        img = new ImageIcon("Image\\Allpads1\\orangepad.png");
-        r1 = new RotatedIcon(img, 45);
-        orgPad.setIcon(r1);
-        orgPad.setBounds(480, 265, 150, 150);
+        orgPad = new JButton(new ImageIcon("Image\\Finalpad\\orgpad1.png"));
+        orgPad.setBounds(480, 265, 200, 200);
         orgPad.setBorderPainted(false);
         orgPad.setFocusPainted(false);
         orgPad.setOpaque(false);
@@ -204,11 +199,8 @@ public class DisPlay implements MouseListener{
         orgPad.setBorder(BorderFactory.createEmptyBorder());
         orgPad.setCursor(new Cursor(Cursor.HAND_CURSOR));
         // set yellowpad
-        yellPad = new JButton();
-        img = new ImageIcon("Image\\Allpads1\\yellowpad.png");
-        r1 = new RotatedIcon(img, 45);
-        yellPad.setIcon(r1);
-        yellPad.setBounds(590, 150,150, 150);
+        yellPad = new JButton(new ImageIcon("Image\\Finalpad\\yellpad1.png"));
+        yellPad.setBounds(590, 150,200, 200);
         yellPad.setBorderPainted(false);
         yellPad.setFocusPainted(false);
         yellPad.setOpaque(false);
@@ -234,109 +226,65 @@ public class DisPlay implements MouseListener{
         //     // TODO: handle exception
         // }
         patternShow();
-        
-        
-        
 
     }
     void patternShow(){
         genPattern();
         System.out.println(pattern);
-        int n = 0;
+        ArrayList <PadType> pad = new ArrayList<>();
+        ArrayList <Integer> idx = new ArrayList<>();
         for (Map.Entry<PadType, Integer> patt : pattern.entrySet()){
-            // try {
-                // TimeUnit.SECONDS.sleep(2);
-                if (patt.getKey() == PadType.RED){
-                    n = (int)patt.getValue();
-                    ImageIcon img = new ImageIcon("Image\\LightPad\\lightredpad.png");
-                    RotatedIcon r = new RotatedIcon(img, 45);
-                    for (int i = 0; i < n; i++){
-                        Timer time = new Timer();
-                        TimerTask task = new TimerTask() {
-                            @Override
-                            public void run() {
-                                System.out.println("delay 1 s");
-                                time.cancel();
-                                // TODO Auto-generated method stub
-                                // throw new UnsupportedOperationException("Unimplemented method 'run'");
-                            }
-                            
-                        };
-                        time.schedule(task, 1000);
-                        redPad.setIcon(r);
-                    }
-                    
-                    // img = new ImageIcon("Image\\Allpads1\\redpad.png");
-                    // r = new RotatedIcon(img, 45);
-                    // redPad.setIcon(r);
-                }
-                else if (patt.getKey() == PadType.CYAN){
-                    n = (int)patt.getValue();
-                    for (int i = 0; i < n; i++){
-                        ImageIcon img = new ImageIcon("Image\\LightPad\\lightcyanpad.png");
-                        RotatedIcon r = new RotatedIcon(img, 45);
-                        cyanPad.setIcon(r);
-                        // cyanPad.setBounds(370, 379, 200, 200);
-                        // cyanPad.setSize(new Dimension(180,180));
-                        // cyanPad.setBounds(370, 150, 150, 150);
-                        // contentPane.add(cyanPad);
-                    }
-                }
-                else if (patt.getKey() == PadType.LIGHT_GREEN){
-                    n = (int)patt.getValue();
-                    for (int i = 0; i < n; i++){
-                        ImageIcon img = new ImageIcon("Image\\LightPad\\lightgreenpad.png");
-                        RotatedIcon r = new RotatedIcon(img, 45);
-                        greenPad.setIcon(r);
-                        // greenPad.setBounds(370, 379, 200, 200);
-                        // greenPad.setSize(new Dimension(180,180));
-                        // greenPad.setBounds(260, 265, 150, 150);
-                        // contentPane.add(greenPad);
-                    }
-                }
-                else if (patt.getKey() == PadType.ORANGE){
-                    n = (int)patt.getValue();
-                    for (int i = 0; i < n; i++){
-                        ImageIcon img = new ImageIcon("Image\\LightPad\\lightorgpad.png");
-                        RotatedIcon r = new RotatedIcon(img, 45);
-                        orgPad.setIcon(r);
-                        // orgPad.setBounds(480, 265, 150, 150);
-                        // contentPane.add(orgPad);
-                        
-                    }
-    
-                }
-                else if (patt.getKey() == PadType.PURPLE){
-                    n = (int)patt.getValue();
-                    for (int i = 0; i < n; i++){
-                        ImageIcon img = new ImageIcon("Image\\LightPad\\lightpurpad.png");
-                        RotatedIcon r = new RotatedIcon(img, 45);
-                        purPad.setIcon(r);
-                        // purPad.setBounds(370, 379, 200, 200);
-                        // purPad.setSize(new Dimension(180,180));
-                        // purPad.setBounds(150, 150, 150, 150);
-                        // contentPane.add(purPad);
-                    }
-    
-                }
-                else if (patt.getKey() == PadType.YELLOW){
-                    n = (int)patt.getValue();
-                    for (int i = 0; i < n; i++){
-                        ImageIcon img = new ImageIcon("Image\\LightPad\\lightyellpad.png");
-                        RotatedIcon r = new RotatedIcon(img, 45);
-                        yellPad.setIcon(r);
-                        // purPad.setBounds(370, 379, 200, 200); 
-                        // yellPad.setSize(new Dimension(180,180));
-                        // yellPad.setBounds(590, 150,150, 150);
-                        // contentPane.add(yellPad);
-                    }
-    
-                }
-            // } catch (InterruptedException e) {
-            //     // TODO Auto-generated catch block
-            //     e.printStackTrace();
+            type = patt.getKey();
+            int n = (int)patt.getValue();
+            pad.add(type);
+            idx.add(n);
+            // if (type == PadType.RED){
+            //     startBlinkingEffect(type, n);
             // }
-        } 
+            // else if (type == PadType.CYAN){
+                
+            //     startBlinkingEffect(type, n);
+            // }
+            // else if (type == PadType.LIGHT_GREEN){
+                
+            //     startBlinkingEffect(type, n);
+            // }
+            // else if (type == PadType.ORANGE){
+                
+            //     startBlinkingEffect(type, n);
+            // }
+            // else if (type == PadType.PURPLE){
+               
+            //     startBlinkingEffect(type, n);
+            // }
+            // else if (type == PadType.YELLOW){
+            //     startBlinkingEffect(type, n);
+            // }
+            
+            
+            // System.out.println("type: " + type);
+            
+            
+            
+        }
+        int n = idx.get(0);
+        startBlinkingEffect(pad.get(0), idx.get(0));
+        // startBlinkingEffect(pad.get(1), idx.get(1));
+        // cntTimer = 1;
+        // Timer timer = new Timer(1000 * n * 2, new ActionListener() {
+        //     @Override
+        //     public void actionPerformed(ActionEvent arg0) {            
+        //         startBlinkingEffect(pad.get(cntTimer), idx.get(cntTimer));
+        //         // cntTimer++;
+        //     }
+        // });
+        // // timer.setRepeats(false);
+        // if (cntTimer == pad.size() && cntTimer == idx.size()){
+        //     timer.stop();
+        //     // timer.setRepeats(false);
+        // }
+        // timer.setRepeats(false);
+        // timer.start();
     }
     private void genPattern(){
         // add PadType to list_pad
@@ -429,9 +377,6 @@ public class DisPlay implements MouseListener{
        else if (input == purPad){
             System.out.println("from purPad: click purPad") ;
         }
-        
-        // TODO Auto-generated method stub
-        // throw new UnsupportedOperationException("Unimplemented method 'mouseClicked'");
     }
     @Override
     public void mousePressed(MouseEvent e) {
@@ -449,10 +394,6 @@ public class DisPlay implements MouseListener{
         if (input == btnQuit){
             btnQuit.setFont(new Font("Unispace", Font.BOLD,20 ));
         }
-
-
-        // TODO Auto-generated method stub
-        // throw new UnsupportedOperationException("Unimplemented method 'mouseEntered'");
     }
     @Override
     public void mouseExited(MouseEvent e) {
@@ -460,10 +401,91 @@ public class DisPlay implements MouseListener{
         if (input == btnQuit){
             btnQuit.setFont(new Font("Unispace", Font.BOLD,18));
         }
-        // TODO Auto-generated method stub
-        // throw new UnsupportedOperationException("Unimplemented method 'mouseExited'");
     }
-    
+    private void startBlinkingEffect(PadType type, int n) {
+        // because it has 2 if that make blinking then n should * 2 
+        amount = n * 2;
+        ActionListener action = new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                System.out.println("type = " + type);
+                System.out.println("amount = " + amount);
+                System.out.println("cntpatt = " + cntpatt);
+                if (cntpatt % 2 != 0){
+                    if (type == PadType.RED){
+                        redPad.setIcon(new ImageIcon("Image\\Finalpad\\redpad2.png"));
+                        System.out.println("change REDpad to light already");
+                    }
+                    else if(type == PadType.CYAN){
+                        cyanPad.setIcon(new ImageIcon("Image\\Finalpad\\cyanpad2.png"));
+                        System.out.println("change CYANpad to light already");
+                    }
+                    else if (type == PadType.LIGHT_GREEN){
+                        greenPad.setIcon(new ImageIcon("Image\\Finalpad\\greenpad2.png"));
+                        System.out.println("change GREENpad to light already");
+                    }
+                    else if (type == PadType.ORANGE){
+                        orgPad.setIcon(new ImageIcon("Image\\Finalpad\\orgpad2.png"));
+                        System.out.println("change ORGpad to light already");
+                    }
+                    else if (type == PadType.PURPLE){
+                        purPad.setIcon(new ImageIcon("Image\\Finalpad\\purpad2.png"));
+                        System.out.println("change PURpad to light already");
+                    }
+                    else if (type == PadType.YELLOW){
+                        yellPad.setIcon(new ImageIcon("Image\\Finalpad\\yellpad2.png"));
+                        System.out.println("change YELLpad to light already");
+                    }
 
+                    
+                }
+                if (cntpatt % 2 == 0){
+                    if (type == PadType.RED){
+                        redPad.setIcon(new ImageIcon("Image\\Finalpad\\redpad1.png"));
+                        System.out.println("REDback to default");
+                    }
+                    else if(type == PadType.CYAN){
+                        cyanPad.setIcon(new ImageIcon("Image\\Finalpad\\cyanpad1.png"));
+                        System.out.println("CYANback to default");
+                    }
+                    else if (type == PadType.LIGHT_GREEN){
+                        greenPad.setIcon(new ImageIcon("Image\\Finalpad\\greenpad1.png"));
+                        System.out.println("GREENback to default");
+                    }
+                    else if (type == PadType.ORANGE){
+                        orgPad.setIcon(new ImageIcon("Image\\Finalpad\\orgpad1.png"));
+                        System.out.println("ORGback to default");
+                    }
+                    else if (type == PadType.PURPLE){
+                        purPad.setIcon(new ImageIcon("Image\\Finalpad\\pupad1.png"));
+                        System.out.println("PURback to default");
+                    }
+                    else if (type == PadType.RED){
+                        redPad.setIcon(new ImageIcon("Image\\Finalpad\\redpad1.png"));
+                        System.out.println("REDback to default");
+                    }
+                    else if (type == PadType.YELLOW){
+                        yellPad.setIcon(new ImageIcon("Image\\Finalpad\\yellpad1.png"));
+                        System.out.println("YELLback to default");
+                    }
+
+                }
+                if (cntpatt == amount){
+                    cntpatt = 0;
+                    blinkTimer.stop();
+                    System.out.println("cntpatt after change = " + cntpatt);
+                    System.out.println("amount after change = " + amount);
+                }
+                cntpatt++;
+            }
+        };
+        blinkTimer = new Timer(1000, action);
+        // blinkTimer.setRepeats(false);
+        blinkTimer.restart();
+        
+        blinkTimer.start();
+        
+        
+    }
 }
 

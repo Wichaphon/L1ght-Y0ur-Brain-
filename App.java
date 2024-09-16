@@ -66,7 +66,7 @@ public class App {
             JButton clickedButton = (JButton) e.getSource();
 
             if (clickedButton == menuButtons[0]) {
-                disPlay game = new disPlay();
+                DisPlay game = new DisPlay();
                 window.dispose();
             } else if (clickedButton == menuButtons[1]) {
                 window.dispose();
